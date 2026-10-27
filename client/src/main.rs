@@ -2,13 +2,12 @@ mod graphics;
 mod entity;
 
 use std::io::Write;
-use std::net::{SocketAddr, TcpStream};
+use std::net::{SocketAddr, TcpStream, UdpSocket};
 use hecs::World;
 use sdl3::event::Event;
 use sdl3::keyboard::Keycode;
 use sdl3::pixels::PixelFormat;
 use sdl3::render::ScaleMode;
-use crate::entity::{PositionBundle, VelocityBundle};
 use crate::graphics::pixel_buffer::PixelBuffer;
 use crate::graphics::Renderer;
 
@@ -32,7 +31,9 @@ fn main() -> anyhow::Result<()> {
 
     let server_addr = SocketAddr::from(([127, 0, 0, 1], 3000));
 
-    let mut stream = TcpStream::connect(server_addr).unwrap();
+    let stream = UdpSocket::bind("0.0.0.0:0")?;
+    stream.connect(&server_addr)?;
+    stream.set_nonblocking(true)?;
 
     loop {
         // for vel in world.query_mut::<&mut VelocityBundle>() {
@@ -81,6 +82,6 @@ fn main() -> anyhow::Result<()> {
 
         let mut input = String::new();
         std::io::stdin().read_line(&mut input)?;
-        stream.write(input.as_bytes())?;
+        stream.send(input.as_bytes())?;
     }
 }
