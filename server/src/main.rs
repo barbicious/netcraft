@@ -1,23 +1,30 @@
-use std::collections::HashMap;
-use std::io::{Read, Write};
-use std::net::{TcpListener, UdpSocket};
-use std::thread;
+
+use std::collections::HashSet;
+use std::net::{SocketAddr, UdpSocket};
 
 fn main() -> anyhow::Result<()> {
-    let listener = UdpSocket::bind("127.0.0.1:3000")?;
-
-    let mut clients = HashMap::new();
+    let socket = UdpSocket::bind("127.0.0.1:3000")?;
+    let mut clients: HashSet<SocketAddr> = HashSet::new();
+    let mut buffer = [0u8; 1024];
 
     loop {
-        let mut buffer = [0; 1024];
-        let (bytes_read, addr) = listener.recv_from(&mut buffer)?;
+        let (bytes_read, addr) = socket.recv_from(&mut buffer)?;
 
-        clients.insert(addr, thread::spawn(move || {
-            println!("Received: {:?}", String::from_utf8_lossy(&buffer[..bytes_read]));
-        }));
+        if bytes_read != 8 {
+            continue;
+        }
 
-        println!("Connection established");
+        clients.insert(addr);
+
+        let pos: &[f32; 2] = bytemuck::from_bytes(&buffer[..8]);
+
+        println!(
+            "Received from {addr}: {}x{}",
+            pos[0], pos[1]
+        );
+
+        for client in clients.iter().filter(|&&client| client != addr) {
+            socket.send_to(&buffer[..bytes_read], client)?;
+        }
     }
-
-    Ok(())
 }

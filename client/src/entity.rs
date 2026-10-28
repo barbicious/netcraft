@@ -6,7 +6,7 @@ pub struct PositionBundle {
     pub y: f32,
 }
 
-pub struct dVelocityBundle {
+pub struct VelocityBundle {
     pub x: f32,
     pub y: f32,
 }
